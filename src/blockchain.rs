@@ -1,26 +1,36 @@
 use crate::block::Block;
+use crate::transaction::Transaction;
+use crate::transaction_pool::TransactionPool;
 
 pub struct Blockchain {
     pub chain: Vec<Block>,
+    pub transaction_pool: TransactionPool,
+    difficulty: usize,
 }
 
 impl Blockchain {
     pub fn new() -> Self {
-        let genesis_block = Block::new("Genesis block".to_string(), String::new(), 1);
+        let genesis_block = Block::new(vec![], String::new(), 4);
 
         Self {
             chain: vec![genesis_block],
+            transaction_pool: TransactionPool::new(),
+            difficulty: 4,
         }
     }
 
-    pub fn add_block(&mut self, data: String) {
+    pub fn add_transaction(&mut self, transaction: Transaction) {
+        self.transaction_pool.add_transaction(transaction);
+    }
+
+    pub fn add_block(&mut self) {
+        let transactions = self.transaction_pool.get_transactions_for_block();
         let previous_hash = if let Some(last_block) = self.chain.last() {
             last_block.hash.clone()
         } else {
             String::new()
         };
-
-        let new_block = Block::new(data, previous_hash, 1);
+        let new_block = Block::new(transactions, previous_hash, self.difficulty);
         self.chain.push(new_block);
     }
 
@@ -32,7 +42,7 @@ impl Blockchain {
             if current_block.hash
                 != Block::calculate_hash(
                     &current_block.timestamp,
-                    &current_block.data,
+                    &current_block.transactions,
                     &current_block.nonce,
                     &current_block.previous_hash,
                 )
